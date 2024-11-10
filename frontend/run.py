@@ -1,10 +1,7 @@
-import aiogram
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
+from aiogram import Bot, Dispatcher
 
 from config import TOKEN_TG_BOT
 from bot.handlers import router
