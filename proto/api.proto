@@ -4,6 +4,7 @@ package api;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
 
 service Companions {
     // Get User by Telegram ID
@@ -75,9 +76,12 @@ message DeleteUserRequest {
 message UpdateUserRequest {
     // Updated User
     // Only `id` is required. Other fields are optional
-    // Only fields that are present in `user` are updated
+    // Only fields that are present in `mask` are updated
     // Other fields will remain the same
     User user = 1;
+
+    // List (mask) of updated fields
+    google.protobuf.FieldMask mask = 2;
 }
 
 message BlockUserRequest {
@@ -112,9 +116,12 @@ message DeleteRideRequest {
 message UpdateRideRequest {
     // Updated Ride
     // Only `id` is required. Other fields are optional
-    // Only fields that are present in `ride` are updated
+    // Only fields that are present in `mask` are updated
     // Other fields will remain the same
     Ride ride = 1;
+
+    // List (mask) of updated fields
+    google.protobuf.FieldMask mask = 2;
 }
 
 message GetSimilarRidesRequest {
