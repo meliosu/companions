@@ -150,6 +150,29 @@ impl Database {
         .map(|_| ())
     }
 
+    // TODO: make more type safe
+    pub async fn update_user_by_id(
+        &self,
+        user_id: i64,
+        values: Vec<(&str, String)>,
+    ) -> sqlx::Result<()> {
+        let updates: String = values
+            .into_iter()
+            .map(|(field, value)| format!("{field} = {value}"))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        sqlx::query(&format!(
+            "UPDATE users
+             SET {updates}
+             WHERE id == $1;"
+        ))
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
     pub async fn get_user_by_id(&self, id: i64) -> sqlx::Result<User> {
         sqlx::query_as(
             "SELECT * FROM users 

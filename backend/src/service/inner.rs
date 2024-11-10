@@ -50,7 +50,50 @@ impl ApiService {
     }
 
     pub async fn update_user(&self, request: UpdateUserRequest) -> Response<()> {
-        todo!()
+        let Some(paths) = request.mask.map(|m| m.paths) else {
+            return Err(Status::invalid_argument("mask is required"));
+        };
+
+        let Some(user) = request.user else {
+            return Err(Status::invalid_argument("user is required"));
+        };
+
+        let mut values = Vec::new();
+
+        let gender = user.gender();
+
+        if paths.iter().any(|p| p == "first_name") {
+            values.push(("first_name", user.first_name));
+        }
+
+        if paths.iter().any(|p| p == "last_name") {
+            values.push(("last_name", user.last_name));
+        }
+
+        if paths.iter().any(|p| p == "age") {
+            values.push(("age", user.age.to_string()));
+        }
+
+        if paths.iter().any(|p| p == "about") {
+            if let Some(about) = user.about {
+                values.push(("about", about));
+            }
+        }
+
+        if paths.iter().any(|p| p == "gender") {
+            values.push(("gender", gender.to_string()));
+        }
+
+        if values.is_empty() {
+            return Err(Status::invalid_argument(
+                "need to update at least one field",
+            ));
+        }
+
+        self.db
+            .update_user_by_id(user.id, values)
+            .await
+            .map_err(map_error)
     }
 
     pub async fn block_user(&self, request: BlockUserRequest) -> Response<()> {
@@ -92,8 +135,10 @@ impl ApiService {
             .map_err(map_error)
     }
 
-    pub async fn update_ride(&self, request: UpdateRideRequest) -> Response<()> {
-        todo!()
+    pub async fn update_ride(&self, _request: UpdateRideRequest) -> Response<()> {
+        return Err(Status::unimplemented(
+            "updating rides is not yet implemented",
+        ));
     }
 
     pub async fn get_similar_rides(&self, request: GetSimilarRidesRequest) -> Response<Rides> {
