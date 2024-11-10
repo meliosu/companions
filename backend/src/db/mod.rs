@@ -180,6 +180,40 @@ impl Database {
         .await
     }
 
+    pub async fn delete_user_by_id(&self, user_id: i64) -> sqlx::Result<()> {
+        sqlx::query(
+            "DELETE FROM users
+             WHERE id == $1;",
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn delete_ride_by_id(&self, ride_id: i64) -> sqlx::Result<()> {
+        sqlx::query(
+            "DELETE FROM rides
+             WHERE id == $1;",
+        )
+        .bind(ride_id)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn add_conflict(&self, issuer_id: i64, target_id: i64) -> sqlx::Result<()> {
+        sqlx::query(
+            "INSERT INTO conflicts
+             VALUES ($1, $2);",
+        )
+        .bind(issuer_id)
+        .bind(target_id)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
     async fn init_users(&self) -> sqlx::Result<()> {
         sqlx::query(init::CREATE_TABLE_USERS)
             .execute(&self.pool)
