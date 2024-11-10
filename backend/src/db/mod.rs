@@ -1,7 +1,8 @@
 use anyhow::{anyhow, bail};
+use prost_types::Timestamp;
 use sqlx::SqlitePool;
 
-use crate::proto::{Ride, User};
+use crate::proto::{Location, Ride, User};
 
 mod init;
 
@@ -42,6 +43,49 @@ impl Database {
         .await?;
 
         Ok(ids1.into_iter().chain(ids2).map(|(id,)| id).collect())
+    }
+
+    pub async fn get_similar_rides(
+        &self,
+        start_point: Location,
+        end_point: Location,
+        start_radius: f64,
+        end_radius: f64,
+        start_period: Timestamp,
+        end_period: Timestamp,
+    ) -> sqlx::Result<Vec<Ride>> {
+        let query = "
+            SELECT 
+                *,
+                ACOS(
+                    SIN(RADIANS(start_point_lat)) * SIN(RADIANS($1)) +
+                    COS(RADIANS(start_point_lat)) * COS(RADIANS($1)) *
+                    COS(RADIANS($2) - RADIANS(start_point_lng))
+                ) * 6371000 as start_distance,
+                ACOS(
+                    SIN(RADIANS(end_point_lat)) * SIN(RADIANS($3)) +
+                    COS(RADIANS(end_point_lat)) * COS(RADIANS($3)) *
+                    COS(RADIANS($4) - RADIANS(end_point_lng))
+                ) * 6371000 as end_distance
+            FROM rides
+            WHERE 
+                start_distance <= $5
+                AND end_distance <= $6
+                AND MAX(start_period, $7) <= MIN(end_period, $8)
+            ORDER BY start_distance + end_distance ASCENDING;
+        ";
+
+        sqlx::query_as(query)
+            .bind(start_point.latitude)
+            .bind(start_point.longitude)
+            .bind(end_point.latitude)
+            .bind(end_point.longitude)
+            .bind(start_radius)
+            .bind(end_radius)
+            .bind(start_period.seconds)
+            .bind(end_period.seconds)
+            .fetch_all(&self.pool)
+            .await
     }
 
     pub async fn create_ride(&self, ride: Ride) -> anyhow::Result<i64> {
