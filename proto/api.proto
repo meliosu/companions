@@ -181,10 +181,10 @@ message User {
     Gender gender = 5;
 
     // Optional. User provided short description of themselves
-    string about = 6;
+    optional string about = 6;
 
     // Optional. Contains Telegram File ID (Not URL!) of User provided avatar
-    string avatar = 7;
+    optional string avatar = 7;
 }
 
 message Location {
