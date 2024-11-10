@@ -5,6 +5,15 @@ use sqlx::Row;
 
 tonic::include_proto!("api");
 
+impl ToString for Gender {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Male => "MALE".into(),
+            Self::Female => "FEMALE".into(),
+        }
+    }
+}
+
 impl FromRow<'_, SqliteRow> for User {
     fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
         let id: i64 = row.try_get("id")?;
