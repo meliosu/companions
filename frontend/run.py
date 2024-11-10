@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
 
-from token import TOKEN_TG_BOT
+from config import TOKEN_TG_BOT
 from bot.handlers import router
 
 bot = Bot(TOKEN_TG_BOT)
