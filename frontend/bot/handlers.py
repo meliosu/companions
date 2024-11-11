@@ -1,3 +1,4 @@
+import grpc
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
@@ -8,9 +9,13 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, ReplyKeyboardRemove
 
+import rpc.api_pb2_grpc as api_grpc
+import rpc.api_pb2 as api
+
 users_on_register = {}
 
 router = Router()
+channel = grpc.insecure_channel('localhost:50051')  # TODO: change address
 
 
 @router.message(CommandStart())
@@ -100,33 +105,45 @@ async def process_woman(message: Message, state: FSMContext):
 async def process_about(message: Message, state: FSMContext):
     setattr(users_on_register[message.chat.id], "about", message.text)
 
-    form = form_str(message.chat.id)
-
-    await state.clear()
-    await message.answer(text=answers.register_success + form)
-
-    # TODO: fix photo downloading
-    # await state.set_state(Form.avatar)
-    # await message.answer(text="Отправьте свое фото, которое будет видно всем пользователям сервиса")
-
-    await state.clear()
+    await state.set_state(Form.avatar)
+    await message.answer(text="Отправьте свое фото, которое будет видно всем пользователям сервиса")
 
 
 def form_str(usr_id) -> str:
+    usr = users_on_register[usr_id]
+
     ret = ""
 
-    first_name = users_on_register[usr_id].first_name
-    last_name = users_on_register[usr_id].last_name
-    age = users_on_register[usr_id].age
-    abouts = users_on_register[usr_id].about
+    first_name = usr.first_name
+    last_name = usr.last_name
+    age = usr.age
+    abouts = usr.about
 
-    ret += f"{first_name} {last_name} {age} \n{abouts}"
+    ret += f"{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
 
     return ret
 
-# @router.message(Form.avatar)
-# async def process_avatar(message: Message, state: FSMContext):
-#     users_on_register[message.chat.id].avatar = message.photo
-#     TODO: add function that sends form to the backend
-#     file = download(file=message.photo[-1].file_id)
-#     setattr(users_on_register[message.chat.id], "avatar", 'photos/image.png')
+
+@router.message(Form.avatar)
+async def process_avatar(message: Message, state: FSMContext):
+    usr = users_on_register[message.chat.id]
+
+    setattr(usr, "avatar", message.photo[-1].file_id)
+
+    gender = api.Gender.MALE
+    if usr.gender:
+        gender = api.Gender.FEMALE
+
+    stub = api_grpc.CompanionsStub(channel)
+    stub.CreateUser(api.CreateUserRequest(
+        user=api.User(id=message.from_user.id, first_name=usr.first_name, last_name=usr.last_name, age=usr.age,
+                      gender=gender, about=usr.about, avatar=usr.avatar)
+    ))
+
+    form = form_str(message.chat.id)
+
+    await state.clear()
+
+    # TODO: Add markup for creating a ride or looking for one
+
+    await message.answer_photo(caption=answers.register_success + form, photo=message.photo[-1].file_id)
