@@ -49,6 +49,7 @@ impl ApiService {
             .map_err(map_error)
     }
 
+    // TODO: refactor
     pub async fn update_user(&self, request: UpdateUserRequest) -> Response<()> {
         let Some(paths) = request.mask.map(|m| m.paths) else {
             return Err(Status::invalid_argument("mask is required"));
@@ -62,12 +63,14 @@ impl ApiService {
 
         let gender = user.gender();
 
+        let wrap = |s| format!(r#"{s}"#);
+
         if paths.iter().any(|p| p == "first_name") {
-            values.push(("first_name", user.first_name));
+            values.push(("first_name", wrap(user.first_name)));
         }
 
         if paths.iter().any(|p| p == "last_name") {
-            values.push(("last_name", user.last_name));
+            values.push(("last_name", wrap(user.last_name)));
         }
 
         if paths.iter().any(|p| p == "age") {
@@ -76,12 +79,12 @@ impl ApiService {
 
         if paths.iter().any(|p| p == "about") {
             if let Some(about) = user.about {
-                values.push(("about", about));
+                values.push(("about", wrap(about)));
             }
         }
 
         if paths.iter().any(|p| p == "gender") {
-            values.push(("gender", gender.to_string()));
+            values.push(("gender", wrap(gender.to_string())));
         }
 
         if values.is_empty() {
