@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1.0.93"
 prost = "0.13.3"
 prost-types = "0.13.3"
-sqlx = { version = "0.8.2", features = ["sqlite"] }
+sqlx = { version = "0.8.2", features = ["sqlite", "runtime-tokio"] }
 tokio = { version = "1.41.1", features = ["full"] }
 tonic = "0.12.3"
 
