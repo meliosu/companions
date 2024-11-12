@@ -17,7 +17,7 @@ pub const CREATE_TABLE_RIDES: &'static str = "
         start_point_lat REAL NOT NULL,
         start_point_lng REAL NOT NULL,
         end_point_lat REAL NOT NULL,
-        end_point_lng REAL NOT NULL
+        end_point_lng REAL NOT NULL,
         start_period INTEGER NOT NULL,
         end_period INTEGER NOT NULL
     );
