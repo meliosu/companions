@@ -10,7 +10,7 @@ const ENV_DATABASE_URL: &'static str = "COMPANIONS_BACKEND_DATABASE_URL";
 
 const DEFAULT_IPADDR: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
 const DEFAULT_PORT: u16 = 7333;
-const DEFAULT_DATABASE_URL: &'static str = "db.sqlite";
+const DEFAULT_DATABASE_URL: &'static str = "db/db.sqlite";
 
 pub struct Config {
     pub address: SocketAddr,
