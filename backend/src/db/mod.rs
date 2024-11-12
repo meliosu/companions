@@ -142,7 +142,7 @@ impl Database {
         .bind(user.first_name)
         .bind(user.last_name)
         .bind(user.age)
-        .bind(user.gender)
+        .bind(user.gender.to_string())
         .bind(user.about)
         .bind(user.avatar)
         .execute(&self.pool)
