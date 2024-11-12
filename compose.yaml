@@ -17,6 +17,7 @@ services:
       dockerfile: ./backend/Dockerfile
     environment:
       - COMPANIONS_LISTEN_PORT=7333
+      - RUST_LOG=info # TODO: make this customisable ant not global
     volumes:
       - db-data:/app/db
     networks:
