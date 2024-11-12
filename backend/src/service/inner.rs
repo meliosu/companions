@@ -1,3 +1,5 @@
+use std::fs::File;
+
 use anyhow::anyhow;
 use tonic::Status;
 
@@ -16,6 +18,15 @@ fn map_error<E: std::error::Error + Send + Sync + 'static>(error: E) -> Status {
 
 impl ApiService {
     pub async fn new(db_url: &str) -> anyhow::Result<Self> {
+        if !std::fs::exists(db_url).map_err(|e| anyhow!("can't resolve path to db: {e}"))? {
+            File::options()
+                .create(true)
+                .read(true)
+                .write(true)
+                .open(db_url)
+                .map_err(|e| anyhow!("creating db file: {e}"))?;
+        }
+
         let db = Database::connect(db_url)
             .await
             .map_err(|e| anyhow!("error connecting to db: {e}"))?;
