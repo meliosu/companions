@@ -16,6 +16,7 @@ users_on_register = {}
 
 router = Router()
 channel = grpc.insecure_channel('localhost:50051')  # TODO: change address
+stub = api_grpc.CompanionsStub(channel)
 
 
 @router.message(CommandStart())
@@ -38,19 +39,10 @@ class Form(StatesGroup):
     avatar = State()
 
 
-class User:
-    first_name: str = "def"
-    last_name: str = "def"
-    age: int = 0
-    gender: bool = False
-    about: str = "def"
-    avatar: str = "def"
-
-
 @router.message(Command('register'))
 @router.message(F.text == "Регистрация")
 async def register(message: Message, state: FSMContext):
-    users_on_register[message.chat.id] = User()
+    users_on_register[message.chat.id] = api.User(id=message.chat.id)
 
     await state.set_state(Form.first_name)
     await message.answer(answers.register_1)
@@ -87,7 +79,7 @@ async def process_age(message: Message, state: FSMContext):
 
 @router.message(Form.gender, F.text.casefold() == "мужчина")
 async def process_man(message: Message, state: FSMContext):
-    setattr(users_on_register[message.chat.id], "gender", False)
+    setattr(users_on_register[message.chat.id], "gender", api.Gender.MALE)
 
     await state.set_state(Form.about)
     await message.answer(text=answers.register_4, reply_markup=ReplyKeyboardRemove())
@@ -95,7 +87,7 @@ async def process_man(message: Message, state: FSMContext):
 
 @router.message(Form.gender, F.text.casefold() == "женщина")
 async def process_woman(message: Message, state: FSMContext):
-    setattr(users_on_register[message.chat.id], "gender", True)
+    setattr(users_on_register[message.chat.id], "gender", api.Gender.FEMALE)
 
     await state.set_state(Form.about)
     await message.answer(text=answers.register_4, reply_markup=ReplyKeyboardRemove())
@@ -106,12 +98,10 @@ async def process_about(message: Message, state: FSMContext):
     setattr(users_on_register[message.chat.id], "about", message.text)
 
     await state.set_state(Form.avatar)
-    await message.answer(text="Отправьте свое фото, которое будет видно всем пользователям сервиса")
+    await message.answer(text=answers.register_5)
 
 
-def form_str(usr_id) -> str:
-    usr = users_on_register[usr_id]
-
+def form_str(usr) -> str:
     ret = ""
 
     first_name = usr.first_name
@@ -127,23 +117,30 @@ def form_str(usr_id) -> str:
 @router.message(Form.avatar)
 async def process_avatar(message: Message, state: FSMContext):
     usr = users_on_register[message.chat.id]
+    form = form_str(usr)
+
+    if not message.photo:
+        stub.CreateUser(api.CreateUserRequest(user=usr))
+        await message.answer(text=answers.register_success + form)
+        return
 
     setattr(usr, "avatar", message.photo[-1].file_id)
 
-    gender = api.Gender.MALE
-    if usr.gender:
-        gender = api.Gender.FEMALE
+    stub.CreateUser(api.CreateUserRequest(user=usr))
 
-    stub = api_grpc.CompanionsStub(channel)
-    stub.CreateUser(api.CreateUserRequest(
-        user=api.User(id=message.from_user.id, first_name=usr.first_name, last_name=usr.last_name, age=usr.age,
-                      gender=gender, about=usr.about, avatar=usr.avatar)
-    ))
-
-    form = form_str(message.chat.id)
+    form = form_str(usr)
 
     await state.clear()
 
     # TODO: Add markup for creating a ride or looking for one
 
     await message.answer_photo(caption=answers.register_success + form, photo=message.photo[-1].file_id)
+
+
+@router.message(F.text == "Моя анкета")
+async def print_user_form(message: Message):
+    usr = stub.GetUser(api.GetUserRequest(user_id=message.chat.id))
+
+    form = form_str(usr)
+
+    await message.answer(text=form)

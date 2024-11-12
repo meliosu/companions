@@ -7,6 +7,10 @@ init_markup = ReplyKeyboardMarkup(keyboard=[
      KeyboardButton(text="Уже есть аккаунт")
      ]], resize_keyborad=True)
 
+default_markup = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text="Моя анкета")]
+], resize_keyboard=True)
+
 gender = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="Мужчина"),
      KeyboardButton(text="Женщина")]
