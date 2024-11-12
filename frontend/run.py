@@ -3,10 +3,11 @@ import logging
 
 from aiogram import Bot, Dispatcher
 
-from config import TOKEN_TG_BOT
 from bot.handlers import router
 
-bot = Bot(TOKEN_TG_BOT)
+import os
+
+bot = Bot(os.environ['COMPANIONS_TG_TOKEN'])
 dispatcher = Dispatcher()
 
 

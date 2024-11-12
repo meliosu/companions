@@ -1,3 +1,5 @@
+import os
+
 import grpc
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -15,7 +17,7 @@ import rpc.api_pb2 as api
 users_on_register = {}
 
 router = Router()
-channel = grpc.insecure_channel('localhost:50051')  # TODO: change address
+channel = grpc.insecure_channel(os.environ['COMPANIONS_BACKEND_ADDRESS'])  # TODO: change address
 stub = api_grpc.CompanionsStub(channel)
 
 
