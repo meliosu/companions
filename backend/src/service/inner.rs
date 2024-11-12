@@ -39,6 +39,8 @@ impl ApiService {
     }
 
     pub async fn get_user(&self, request: GetUserRequest) -> Response<User> {
+        log::info!("rpc: GetUser with user_id {}", request.user_id);
+
         self.db
             .get_user_by_id(request.user_id)
             .await
@@ -46,6 +48,8 @@ impl ApiService {
     }
 
     pub async fn create_user(&self, request: CreateUserRequest) -> Response<()> {
+        log::info!("rpc: CreateUser");
+
         let Some(user) = request.user else {
             return Err(Status::invalid_argument("expected User"));
         };
@@ -54,6 +58,8 @@ impl ApiService {
     }
 
     pub async fn delete_user(&self, request: DeleteUserRequest) -> Response<()> {
+        log::info!("rpc: DeleteUser with user_id {}", request.user_id);
+
         self.db
             .delete_user_by_id(request.user_id)
             .await
@@ -62,6 +68,8 @@ impl ApiService {
 
     // TODO: refactor
     pub async fn update_user(&self, request: UpdateUserRequest) -> Response<()> {
+        log::info!("rpc: UpdateUser");
+
         let Some(paths) = request.mask.map(|m| m.paths) else {
             return Err(Status::invalid_argument("mask is required"));
         };
@@ -111,6 +119,8 @@ impl ApiService {
     }
 
     pub async fn block_user(&self, request: BlockUserRequest) -> Response<()> {
+        log::info!("rpc: BlockUser");
+
         if request.blocking_user_id == request.blocked_user_id {
             return Err(Status::invalid_argument("user can't block themselves"));
         }
@@ -122,6 +132,8 @@ impl ApiService {
     }
 
     pub async fn get_ride(&self, request: GetRideRequest) -> Response<Ride> {
+        log::info!("rpc: GetRide");
+
         self.db
             .get_ride_by_id(request.ride_id)
             .await
@@ -129,6 +141,8 @@ impl ApiService {
     }
 
     pub async fn create_ride(&self, request: CreateRideRequest) -> Response<CreateRideResponse> {
+        log::info!("rpc: CreateRide");
+
         let Some(ride) = request.ride else {
             return Err(Status::invalid_argument("ride is required"));
         };
@@ -143,6 +157,8 @@ impl ApiService {
     }
 
     pub async fn delete_ride(&self, request: DeleteRideRequest) -> Response<()> {
+        log::info!("rpc: DeleteRide");
+
         self.db
             .delete_ride_by_id(request.ride_id)
             .await
@@ -150,12 +166,16 @@ impl ApiService {
     }
 
     pub async fn update_ride(&self, _request: UpdateRideRequest) -> Response<()> {
+        log::info!("rpc: UpdateRide");
+
         return Err(Status::unimplemented(
             "updating rides is not yet implemented",
         ));
     }
 
     pub async fn get_similar_rides(&self, request: GetSimilarRidesRequest) -> Response<Rides> {
+        log::info!("rpc: GetSimilarRides");
+
         let bail = |s| Err(Status::invalid_argument(s));
 
         let Some(ride) = request.ride else {
@@ -211,6 +231,8 @@ impl ApiService {
     }
 
     pub async fn get_user_rides(&self, request: GetUserRidesRequest) -> Response<Rides> {
+        log::info!("rpc: GetUserRides with user_id {}", request.user_id);
+
         let rides = self
             .db
             .get_user_rides(request.user_id)

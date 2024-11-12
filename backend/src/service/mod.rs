@@ -37,6 +37,7 @@ impl Companions for ApiService {
         self.inner
             .get_user(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in GetUser: {e}"))
             .map(to_response)
     }
 
@@ -44,6 +45,7 @@ impl Companions for ApiService {
         self.inner
             .create_user(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in CreateUser: {e}"))
             .map(to_response)
     }
 
@@ -51,6 +53,7 @@ impl Companions for ApiService {
         self.inner
             .delete_user(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in DeleteUser: {e}"))
             .map(to_response)
     }
 
@@ -58,6 +61,7 @@ impl Companions for ApiService {
         self.inner
             .update_user(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in UpdateUser: {e}"))
             .map(to_response)
     }
 
@@ -65,6 +69,7 @@ impl Companions for ApiService {
         self.inner
             .block_user(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in BlockUser: {e}"))
             .map(to_response)
     }
 
@@ -72,6 +77,7 @@ impl Companions for ApiService {
         self.inner
             .get_ride(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in GetRide: {e}"))
             .map(to_response)
     }
 
@@ -82,6 +88,7 @@ impl Companions for ApiService {
         self.inner
             .create_ride(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in CreateRide: {e}"))
             .map(to_response)
     }
 
@@ -89,6 +96,7 @@ impl Companions for ApiService {
         self.inner
             .delete_ride(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in DeleteRide: {e}"))
             .map(to_response)
     }
 
@@ -96,6 +104,7 @@ impl Companions for ApiService {
         self.inner
             .update_ride(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in UpdateRide: {e}"))
             .map(to_response)
     }
 
@@ -106,6 +115,7 @@ impl Companions for ApiService {
         self.inner
             .get_similar_rides(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in GetSimilarRides: {e}"))
             .map(to_response)
     }
 
@@ -113,6 +123,7 @@ impl Companions for ApiService {
         self.inner
             .get_user_rides(request.into_inner())
             .await
+            .inspect_err(|e| log::info!("rpc error: in GetUserRides: {e}"))
             .map(to_response)
     }
 }

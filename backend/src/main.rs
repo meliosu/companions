@@ -4,6 +4,8 @@ use tonic::transport::Server;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     if let Err(e) = run().await {
         eprintln!("Error: {e}");
     }
@@ -12,6 +14,8 @@ async fn main() {
 async fn run() -> anyhow::Result<()> {
     let config = Config::from_env()?;
     let service = ApiService::new(&config.database_url).await?;
+
+    log::info!("running backend with config: {config:#?}");
 
     Server::builder()
         .add_service(CompanionsServer::new(service))

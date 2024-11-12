@@ -12,6 +12,7 @@ const DEFAULT_IPADDR: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
 const DEFAULT_PORT: u16 = 7333;
 const DEFAULT_DATABASE_URL: &'static str = "db/db.sqlite";
 
+#[derive(Debug)]
 pub struct Config {
     pub address: SocketAddr,
     pub database_url: String,
