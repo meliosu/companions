@@ -1,7 +1,7 @@
+import json
 from datetime import datetime, timezone
 
 from aiogram import F
-from google.protobuf.internal.well_known_types import Timestamp
 
 from bot.handlers import stub, api, api_grpc
 
@@ -48,8 +48,7 @@ async def process_start_point(message: Message, state: FSMContext):
         return
 
     location = api.Location(latitude=message.location.latitude, longitude=message.location.longitude)
-
-    setattr(rides_in_process[message.chat.id], "start_point", location)
+    rides_in_process[message.chat.id].start_point.CopyFrom(location)
 
     await state.set_state(Ride.end_point)
     await message.answer(text=answers.ride_end_point)
@@ -64,25 +63,18 @@ async def process_start_point(message: Message, state: FSMContext):
         return
 
     location = api.Location(latitude=message.location.latitude, longitude=message.location.longitude)
-    setattr(rides_in_process[message.chat.id], "end_point", location)
+    rides_in_process[message.chat.id].start_point.CopyFrom(location)
 
     await state.set_state(Ride.start_period)
-    await message.answer(text=answers.ride_end_point)
+    await message.answer(text=answers.ride_start_period)
 
 
 @router.message(Ride.start_period)
 async def process_start_period(message: Message, state: FSMContext):
     try:
         res = message.text.split(":")
-        print(res[0], res[1])
-        date = datetime(year=message.date.year, month=message.date.month, day=message.date.day, hour=int(res[0]),
-                        minute=int(res[1]), second=0)
-        date.replace(tzinfo=timezone.utc)
-
-        timestamp = Timestamp()
-        timestamp.FromDatetime(date)
-
-        setattr(rides_in_process[message.chat.id], "start_period", timestamp)
+        date = datetime.now().replace(hour=int(res[0]), minute=int(res[1]), second=0, microsecond=0)
+        setattr(rides_in_process[message.chat.id], "start_period", date)
     except ValueError:
         await message.answer(text=answers.bad_time)
         return
@@ -96,14 +88,9 @@ async def process_end_period(message: Message, state: FSMContext):
     key = message.chat.id
 
     try:
-        res= message.text.split(":")
-        date = datetime(year=message.date.year, month=message.date.month, day=message.date.day, hour=int(res[0]),
-                        minute=int(res[1]), second=0)
-
-        timestamp = Timestamp()
-        timestamp.FromDatetime(date)
-
-        setattr(rides_in_process[key], "end_period", timestamp)
+        res = message.text.split(":")
+        date = datetime.now().replace(hour=int(res[0]), minute=int(res[1]), second=0, microsecond=0)
+        setattr(rides_in_process[key], "end_period", date)
     except ValueError:
         await message.answer(text=answers.bad_time)
         return
