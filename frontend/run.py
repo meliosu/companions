@@ -3,7 +3,8 @@ import logging
 
 from aiogram import Bot, Dispatcher
 
-from bot.handlers import router
+from bot.handlers import router as handler_router
+from bot.ride_handler import router as ride_router
 
 import os
 
@@ -12,7 +13,8 @@ dispatcher = Dispatcher()
 
 
 async def main():
-    dispatcher.include_router(router)
+    dispatcher.include_router(handler_router)
+    dispatcher.include_router(ride_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dispatcher.start_polling(bot)

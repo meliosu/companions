@@ -17,7 +17,7 @@ import rpc.api_pb2 as api
 users_on_register = {}
 
 router = Router()
-channel = grpc.insecure_channel(os.environ['COMPANIONS_BACKEND_ADDRESS'])  # TODO: change address
+channel = grpc.insecure_channel(os.environ['COMPANIONS_BACKEND_ADDRESS'])
 stub = api_grpc.CompanionsStub(channel)
 
 
@@ -34,7 +34,6 @@ async def about(message: Message):
 
 class Form(StatesGroup):
     first_name = State()
-    # last_name = State()
     age = State()
     gender = State()
     about = State()
@@ -123,20 +122,20 @@ async def process_avatar(message: Message, state: FSMContext):
 
     if not message.photo:
         stub.CreateUser(api.CreateUserRequest(user=usr))
-        await message.answer(text=answers.register_success + form)
+        await message.answer(text=answers.register_success + form, reply_markup=keyboards.default_markup)
         return
 
     setattr(usr, "avatar", message.photo[-1].file_id)
 
-    stub.CreateUser(api.CreateUserRequest(user=usr))
+    # stub.CreateUser(api.CreateUserRequest(user=usr))
 
     form = form_str(usr)
 
+    users_on_register.pop(message.chat.id)
+
     await state.clear()
-
-    # TODO: Add markup for creating a ride or looking for one
-
-    await message.answer_photo(caption=answers.register_success + form, photo=message.photo[-1].file_id)
+    await message.answer_photo(caption=answers.register_success + form, photo=message.photo[-1].file_id,
+                               reply_markup=keyboards.default_markup)
 
 
 @router.message(F.text == "Моя анкета")

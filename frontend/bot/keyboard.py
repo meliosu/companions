@@ -8,7 +8,8 @@ init_markup = ReplyKeyboardMarkup(keyboard=[
      ]], resize_keyborad=True)
 
 default_markup = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text="Моя анкета")]
+    [KeyboardButton(text="Моя анкета"),
+     KeyboardButton(text="Создать заявку")]
 ], resize_keyboard=True)
 
 gender = ReplyKeyboardMarkup(keyboard=[
