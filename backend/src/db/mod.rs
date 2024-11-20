@@ -26,23 +26,15 @@ impl Database {
     }
 
     pub async fn get_blocked_user_ids(&self, user_id: i64) -> sqlx::Result<Vec<i64>> {
-        let ids1: Vec<(i64,)> = sqlx::query_as(
-            "SELECT target_id FROM conflicts
-             WHERE issuer_id == $1;",
+        let ids = sqlx::query_as(
+            "SELECT issuer_id AS id FROM conflicts WHERE target_id = $1
+             UNION SELECT target_id AS id FROM conflicts WHERE issuer_id = $1;",
         )
         .bind(user_id)
         .fetch_all(&self.pool)
         .await?;
 
-        let ids2: Vec<(i64,)> = sqlx::query_as(
-            "SELECT issuer_id FROM conflicts
-             WHERE target_id == $1;",
-        )
-        .bind(user_id)
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(ids1.into_iter().chain(ids2).map(|(id,)| id).collect())
+        Ok(ids.into_iter().map(|(id,)| id).collect())
     }
 
     pub async fn get_similar_rides(
@@ -72,7 +64,7 @@ impl Database {
                 start_distance <= $5
                 AND end_distance <= $6
                 AND MAX(start_period, $7) <= MIN(end_period, $8)
-            ORDER BY start_distance + end_distance ASCENDING;
+            ORDER BY start_distance + end_distance ASC;
         ";
 
         sqlx::query_as(query)
