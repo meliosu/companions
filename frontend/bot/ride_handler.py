@@ -83,6 +83,24 @@ async def process_start_period(message: Message, state: FSMContext):
     await message.answer(text=answers.ride_end_period)
 
 
+async def send_ride(message, ride):
+    ride_owner = stub.GetUser(api.GetUserRequest(user_id=ride.user_id))
+    start_time = ride.start_period.astimezone(timezone.utc)
+    end_time = ride.end_period.astimezone(timezone.utc)
+
+    first_name = ride_owner.first_name
+    last_name = ride_owner.last_name
+    age = ride_owner.age
+    abouts = ride_owner.about
+
+    about = f"Начало поездки: {start_time}\nКонец поездки: {end_time}\n\nАнкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
+
+    if hasattr(ride_owner, "avatar"):
+        await message.answer_photo(caption=about, photo=ride_owner.avatar, reply_markup=keyboards.ride_markup)
+    else:
+        await message.answer(text=about, reply_markup=keyboards.ride_markup)
+
+
 @router.message(Ride.end_period)
 async def process_end_period(message: Message, state: FSMContext):
     key = message.chat.id
@@ -95,8 +113,19 @@ async def process_end_period(message: Message, state: FSMContext):
         await message.answer(text=answers.bad_time)
         return
 
-    # stub.CreateRide(api.CreateRideRequest(ride=rides_in_process[key]))
-    rides_in_process.pop(key)
+    stub.CreateRide(api.CreateRideRequest(ride=rides_in_process[key]))
 
     await state.clear()
     await message.answer(text=answers.ride_success)
+
+    similar_rides: list = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key]))
+    rides_in_process.pop(key)
+
+    if not similar_rides:
+        await message.answer(text=answers.no_similar_rides_found, reply_markup=keyboards.no_similar_ride)
+        return
+
+    for ride in similar_rides:
+        await send_ride(message, ride)
+
+    await message.answer(text=answers.all_rides_listed)
