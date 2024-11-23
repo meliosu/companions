@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from aiogram import F
+from aiogram.filters.callback_data import CallbackData
 
 from bot.handlers import stub, api, api_grpc
 
@@ -13,7 +14,7 @@ import bot.text_answers as answers
 
 from aiogram import F, Router
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 router = Router()
 rides_in_process = {}
@@ -24,6 +25,15 @@ class Ride(StatesGroup):
     end_point = State()
     start_period = State()
     end_period = State()
+
+
+class RideCallback(CallbackData, prefix="ride"):
+    sender_id: int
+    sender_username: str
+    recipient_id: int
+    purpose: str
+    sender_ride: int
+    recipient_ride: int
 
 
 @router.message(F.text == "Создать заявку")
@@ -83,7 +93,7 @@ async def process_start_period(message: Message, state: FSMContext):
     await message.answer(text=answers.ride_end_period)
 
 
-async def send_ride(message, ride):
+async def send_ride(message, ride, ride_response):
     ride_owner = stub.GetUser(api.GetUserRequest(user_id=ride.user_id))
     start_time = ride.start_period.astimezone(timezone.utc)
     end_time = ride.end_period.astimezone(timezone.utc)
@@ -95,8 +105,24 @@ async def send_ride(message, ride):
 
     about = f"Начало поездки: {start_time}\nКонец поездки: {end_time}\n\nАнкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
 
+    ride_together = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
+                                 recipient_id=ride.user_id, purpose="ride_together",
+                                 sender_ride=ride.ride_id, recipient_ride=ride_response.ride_id).pack()
+    decline = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
+                           recipient_id=ride.user_id, purpose="decline_ride",
+                           sender_ride=ride.ride_id, recipient_ride=ride_response.ride_id).pack()
+    block_user = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
+                              recipient_id=ride.user_id, purpose="ride_together",
+                              sender_ride=ride.ride_id, recipient_ride=ride_response.ride_id).pack()
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together),
+         InlineKeyboardButton(text="Отклонить", callback_data=decline),
+         InlineKeyboardButton(text="Заблокировать", callback_data=block_user)]
+    ])
+
     if hasattr(ride_owner, "avatar"):
-        await message.answer_photo(caption=about, photo=ride_owner.avatar, reply_markup=keyboards.ride_markup)
+        await message.answer_photo(caption=about, photo=ride_owner.avatar, reply_markup=markup)
     else:
         await message.answer(text=about, reply_markup=keyboards.ride_markup)
 
@@ -113,19 +139,33 @@ async def process_end_period(message: Message, state: FSMContext):
         await message.answer(text=answers.bad_time)
         return
 
-    stub.CreateRide(api.CreateRideRequest(ride=rides_in_process[key]))
+    ride_response: api.CreateRideResponse = stub.CreateRide(api.CreateRideRequest(ride=rides_in_process[key]))
+    setattr(rides_in_process[message.chat.id], "ride_id", ride_response.ride_id)
 
     await state.clear()
     await message.answer(text=answers.ride_success)
 
     similar_rides: list = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key]))
-    rides_in_process.pop(key)
 
     if not similar_rides:
         await message.answer(text=answers.no_similar_rides_found, reply_markup=keyboards.no_similar_ride)
         return
 
+    rides_in_process.pop(key)
     for ride in similar_rides:
-        await send_ride(message, ride)
+        await send_ride(message, ride, ride_response)
 
     await message.answer(text=answers.all_rides_listed)
+
+
+@router.callback_query(F.data == "wait_for_companion")
+async def process_wait_for_companion(callback: CallbackQuery):
+    await callback.message.answer(text=answers.wait_for_companion)
+
+
+@router.callback_query(F.data == "delete_ride")
+async def process_ride_deletion(callback: CallbackQuery):
+    stub.DeleteRide(api.DeleteRideRequest(ride_id=rides_in_process[callback.message.chat.id].ride_id))
+    rides_in_process.pop(callback.message.chat.id)
+
+    await callback.message.answer(text=answers.ride_deleted_after_no_similar)

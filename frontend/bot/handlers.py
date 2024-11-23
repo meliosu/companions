@@ -121,14 +121,14 @@ async def process_avatar(message: Message, state: FSMContext):
     form = form_str(usr)
 
     if not message.photo:
-        # stub.CreateUser(api.CreateUserRequest(user=usr))
+        stub.CreateUser(api.CreateUserRequest(user=usr))
         await state.clear()
         await message.answer(text=answers.register_success + form, reply_markup=keyboards.default_markup)
         return
 
     setattr(usr, "avatar", message.photo[-1].file_id)
 
-    # stub.CreateUser(api.CreateUserRequest(user=usr))
+    stub.CreateUser(api.CreateUserRequest(user=usr))
 
     form = form_str(usr)
 
