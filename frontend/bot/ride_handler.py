@@ -73,7 +73,7 @@ async def process_start_point(message: Message, state: FSMContext):
         return
 
     location = api.Location(latitude=message.location.latitude, longitude=message.location.longitude)
-    rides_in_process[message.chat.id].start_point.CopyFrom(location)
+    rides_in_process[message.chat.id].end_point.CopyFrom(location)
 
     await state.set_state(Ride.start_period)
     await message.answer(text=answers.ride_start_period)
@@ -107,13 +107,13 @@ async def send_ride(message, ride, ride_response):
 
     ride_together = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                                  recipient_id=ride.user_id, purpose="ride_together",
-                                 sender_ride=ride.ride_id, recipient_ride=ride_response.ride_id).pack()
+                                 sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
     decline = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                            recipient_id=ride.user_id, purpose="decline_ride",
-                           sender_ride=ride.ride_id, recipient_ride=ride_response.ride_id).pack()
+                           sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
     block_user = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                               recipient_id=ride.user_id, purpose="ride_together",
-                              sender_ride=ride.ride_id, recipient_ride=ride_response.ride_id).pack()
+                              sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together),
@@ -140,18 +140,20 @@ async def process_end_period(message: Message, state: FSMContext):
         return
 
     ride_response: api.CreateRideResponse = stub.CreateRide(api.CreateRideRequest(ride=rides_in_process[key]))
-    setattr(rides_in_process[message.chat.id], "ride_id", ride_response.ride_id)
+    setattr(rides_in_process[message.chat.id], "id", ride_response.ride_id)
 
     await state.clear()
     await message.answer(text=answers.ride_success)
 
-    similar_rides: list = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key]))
+    similar_rides: list = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key],
+                                                                          start_radius=200, end_radius=200))
+
+    rides_in_process.pop(key)
 
     if not similar_rides:
         await message.answer(text=answers.no_similar_rides_found, reply_markup=keyboards.no_similar_ride)
         return
 
-    rides_in_process.pop(key)
     for ride in similar_rides:
         await send_ride(message, ride, ride_response)
 
@@ -165,7 +167,7 @@ async def process_wait_for_companion(callback: CallbackQuery):
 
 @router.callback_query(F.data == "delete_ride")
 async def process_ride_deletion(callback: CallbackQuery):
-    stub.DeleteRide(api.DeleteRideRequest(ride_id=rides_in_process[callback.message.chat.id].ride_id))
+    stub.DeleteRide(api.DeleteRideRequest(ride_id=rides_in_process[callback.message.chat.id].id))
     rides_in_process.pop(callback.message.chat.id)
 
     await callback.message.answer(text=answers.ride_deleted_after_no_similar)
