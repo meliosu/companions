@@ -95,8 +95,8 @@ async def process_start_period(message: Message, state: FSMContext):
 
 async def send_ride(message, ride, ride_response):
     ride_owner = stub.GetUser(api.GetUserRequest(user_id=ride.user_id))
-    start_time = ride.start_period.astimezone(timezone.utc)
-    end_time = ride.end_period.astimezone(timezone.utc)
+    start_time = ride.start_period
+    end_time = ride.end_period
 
     first_name = ride_owner.first_name
     last_name = ride_owner.last_name
@@ -145,16 +145,16 @@ async def process_end_period(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(text=answers.ride_success)
 
-    similar_rides: list = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key],
+    similar_rides = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key],
                                                                           start_radius=200, end_radius=200))
 
     rides_in_process.pop(key)
 
-    if not similar_rides:
+    if not similar_rides.rides:
         await message.answer(text=answers.no_similar_rides_found, reply_markup=keyboards.no_similar_ride)
         return
 
-    for ride in similar_rides:
+    for ride in similar_rides.rides:
         await send_ride(message, ride, ride_response)
 
     await message.answer(text=answers.all_rides_listed)

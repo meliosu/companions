@@ -26,6 +26,16 @@ async def command_start(message: Message):
     await message.answer(text=answers.hello_message, reply_markup=keyboards.init_markup)
 
 
+# @router.message(F.text == "Моя анкета")
+@router.message(F.text == "Уже есть аккаунт")
+async def print_user_form(message: Message):
+    usr = stub.GetUser(api.GetUserRequest(user_id=message.chat.id))
+
+    form = form_str(usr)
+
+    await message.answer(text=form, reply_markup=keyboards.default_markup)
+
+
 @router.message(Command('help'))
 @router.message(F.text == 'Для чего этот бот?')
 async def about(message: Message):
@@ -139,10 +149,4 @@ async def process_avatar(message: Message, state: FSMContext):
                                reply_markup=keyboards.default_markup)
 
 
-@router.message(F.text == "Моя анкета")
-async def print_user_form(message: Message):
-    usr = stub.GetUser(api.GetUserRequest(user_id=message.chat.id))
 
-    form = form_str(usr)
-
-    await message.answer(text=form)
