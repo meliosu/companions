@@ -207,6 +207,7 @@ impl ApiService {
                 request.end_radius as f64,
                 start_period,
                 end_period,
+                ride.user_id,
             )
             .await
             .map_err(map_error)?;

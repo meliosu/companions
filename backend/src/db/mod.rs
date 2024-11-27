@@ -45,6 +45,7 @@ impl Database {
         end_radius: f64,
         start_period: Timestamp,
         end_period: Timestamp,
+        user_id: i64,
     ) -> sqlx::Result<Vec<Ride>> {
         let query = "
             SELECT 
@@ -64,6 +65,7 @@ impl Database {
                 start_distance <= $5
                 AND end_distance <= $6
                 AND MAX(start_period, $7) <= MIN(end_period, $8)
+                AND user_id != $9
             ORDER BY start_distance + end_distance ASC;
         ";
 
@@ -76,6 +78,7 @@ impl Database {
             .bind(end_radius)
             .bind(start_period.seconds)
             .bind(end_period.seconds)
+            .bind(user_id)
             .fetch_all(&self.pool)
             .await
     }
