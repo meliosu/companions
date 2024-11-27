@@ -9,7 +9,7 @@ env_logger = "0.11.5"
 log = "0.4.22"
 prost = "0.13.3"
 prost-types = "0.13.3"
-sqlx = { version = "0.8.2", features = ["sqlite", "runtime-tokio"] }
+sqlx = { git = "https://github.com/launchbadge/sqlx", features = ["sqlite-unbundled", "runtime-tokio"] }
 tokio = { version = "1.41.1", features = ["full"] }
 tonic = "0.12.3"
 
