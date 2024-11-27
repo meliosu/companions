@@ -20,7 +20,7 @@ impl FromRow<'_, SqliteRow> for User {
         let first_name: String = row.try_get("first_name")?;
         let last_name: String = row.try_get("last_name")?;
         let age: u32 = row.try_get("age")?;
-        let avatar: Option<String> = row.try_get("photo")?;
+        let avatar: Option<String> = row.try_get("avatar")?;
         let about: Option<String> = row.try_get("about")?;
         let gender: String = row.try_get("gender")?;
         let gender = if gender == "MALE" {
