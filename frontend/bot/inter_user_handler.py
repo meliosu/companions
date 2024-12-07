@@ -1,6 +1,6 @@
 from aiogram import F
 from aiogram.types import CallbackQuery
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.ride_handler import router, RideCallback
 from bot.handlers import stub, api
@@ -26,11 +26,24 @@ async def send_ride_offer(callback: CallbackQuery, data: RideCallback):
                                                                              recipient_id=data.sender_id,
                                                                              purpose="ride_together_back",
                                                                              sender_ride=data.recipient_ride,
-                                                                             recipient_ride=sender.ride).pack())]
+                                                                             recipient_ride=sender.ride).pack()),
+         InlineKeyboardButton(text="Отклонить", callback_data=RideCallback(sender_id=data.recipient_id,
+                                                                           sender_username=chat.username,
+                                                                           recipient_id=data.sender_id,
+                                                                           purpose="decline_ride_back",
+                                                                           sender_ride=data.recipient_ride,
+                                                                           recipient_ride=sender.ride).pack()),
+         InlineKeyboardButton(text="Заблокировать", callback_data=RideCallback(sender_id=data.recipient_id,
+                                                                               sender_username=chat.username,
+                                                                               recipient_id=data.sender_id,
+                                                                               purpose="block_user_back",
+                                                                               sender_ride=data.recipient_ride,
+                                                                               recipient_ride=sender.ride).pack())]
     ])
 
     if hasattr(sender, "avatar"):
-        await bot.send_photo(chat_id=data.recipient_id, photo=sender.avatar, text=answers.ride_offer + about, reply_markup=markup)
+        await bot.send_photo(chat_id=data.recipient_id, photo=sender.avatar, text=answers.ride_offer + about,
+                             reply_markup=markup)
     else:
         await bot.send_message(chat_id=data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
 
@@ -46,3 +59,14 @@ async def send_ride_offer_back(callback: CallbackQuery, data: RideCallback):
     stub.DeleteRide(api.DeleteRideRequest(ride_id=data.sender_ride))
     stub.DeleteRide(api.DeleteRideRequest(ride_id=data.recipient_ride))
 
+
+@router.callback_query(RideCallback.filter(F.purpose == "decline_ride_back"))
+async def send_ride_decline_back(callback: CallbackQuery, data: RideCallback):
+    await bot.send_message(chat_id=data.recipient_id, text=answers.ride_declined)
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "block_user_back"))
+async def send_ride_decline_back(callback: CallbackQuery, data: RideCallback):
+    stub.BlockUser(api.BlockUserRequest(blocking_user_id=data.sender_id, blocked_user_id=data.recipient_id))
+
+    await callback.message.answer(text=answers.user_blocked)

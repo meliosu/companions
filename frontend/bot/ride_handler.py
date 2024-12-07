@@ -112,7 +112,7 @@ async def send_ride(message, ride, ride_response):
                            recipient_id=ride.user_id, purpose="decline_ride",
                            sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
     block_user = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
-                              recipient_id=ride.user_id, purpose="ride_together",
+                              recipient_id=ride.user_id, purpose="block_user",
                               sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -146,7 +146,7 @@ async def process_end_period(message: Message, state: FSMContext):
     await message.answer(text=answers.ride_success)
 
     similar_rides = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key],
-                                                                          start_radius=200, end_radius=200))
+                                                                    start_radius=200, end_radius=200))
 
     rides_in_process.pop(key)
 
@@ -171,3 +171,15 @@ async def process_ride_deletion(callback: CallbackQuery):
     rides_in_process.pop(callback.message.chat.id)
 
     await callback.message.answer(text=answers.ride_deleted_after_no_similar)
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "decline_ride"))
+async def process_ride_decline(callback: CallbackQuery):
+    await callback.message.delete()
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "block_user"))
+async def process_user_block(callback: CallbackQuery, data: RideCallback):
+    stub.BlockUser(api.BlockUserRequest(blocking_user_id=data.sender_id, blocked_user_id=data.recipient_id))
+
+    await callback.message.delete()
