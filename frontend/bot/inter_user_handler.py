@@ -9,8 +9,8 @@ from run import bot
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "ride_together"))
-async def send_ride_offer(callback: CallbackQuery, data: RideCallback):
-    sender = stub.GetUser(api.GetUserRequest(user_id=data.sender_id))
+async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
+    sender = stub.GetUser(api.GetUserRequest(user_id=callback_data.sender_id))
 
     first_name = sender.first_name
     last_name = sender.last_name
@@ -21,31 +21,31 @@ async def send_ride_offer(callback: CallbackQuery, data: RideCallback):
 
     chat = callback.message.chat
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Согласиться", callback_data=RideCallback(sender_id=data.recipient_id,
+        [InlineKeyboardButton(text="Согласиться", callback_data=RideCallback(sender_id=callback_data.recipient_id,
                                                                              sender_username=chat.username,
-                                                                             recipient_id=data.sender_id,
+                                                                             recipient_id=callback_data.sender_id,
                                                                              purpose="ride_together_back",
-                                                                             sender_ride=data.recipient_ride,
+                                                                             sender_ride=callback_data.recipient_ride,
                                                                              recipient_ride=sender.ride).pack()),
-         InlineKeyboardButton(text="Отклонить", callback_data=RideCallback(sender_id=data.recipient_id,
+         InlineKeyboardButton(text="Отклонить", callback_data=RideCallback(sender_id=callback_data.recipient_id,
                                                                            sender_username=chat.username,
-                                                                           recipient_id=data.sender_id,
+                                                                           recipient_id=callback_data.sender_id,
                                                                            purpose="decline_ride_back",
-                                                                           sender_ride=data.recipient_ride,
+                                                                           sender_ride=callback_data.recipient_ride,
                                                                            recipient_ride=sender.ride).pack()),
-         InlineKeyboardButton(text="Заблокировать", callback_data=RideCallback(sender_id=data.recipient_id,
+         InlineKeyboardButton(text="Заблокировать", callback_data=RideCallback(sender_id=callback_data.recipient_id,
                                                                                sender_username=chat.username,
-                                                                               recipient_id=data.sender_id,
+                                                                               recipient_id=callback_data.sender_id,
                                                                                purpose="block_user_back",
-                                                                               sender_ride=data.recipient_ride,
+                                                                               sender_ride=callback_data.recipient_ride,
                                                                                recipient_ride=sender.ride).pack())]
     ])
 
     if hasattr(sender, "avatar"):
-        await bot.send_photo(chat_id=data.recipient_id, photo=sender.avatar, text=answers.ride_offer + about,
+        await bot.send_photo(chat_id=callback_data.recipient_id, photo=sender.avatar, text=answers.ride_offer + about,
                              reply_markup=markup)
     else:
-        await bot.send_message(chat_id=data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
+        await bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "ride_together_back"))
@@ -61,12 +61,12 @@ async def send_ride_offer_back(callback: CallbackQuery, data: RideCallback):
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "decline_ride_back"))
-async def send_ride_decline_back(callback: CallbackQuery, data: RideCallback):
-    await bot.send_message(chat_id=data.recipient_id, text=answers.ride_declined)
+async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCallback):
+    await bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_declined)
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "block_user_back"))
-async def send_ride_decline_back(callback: CallbackQuery, data: RideCallback):
-    stub.BlockUser(api.BlockUserRequest(blocking_user_id=data.sender_id, blocked_user_id=data.recipient_id))
+async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCallback):
+    stub.BlockUser(api.BlockUserRequest(blocking_user_id=callback_data.sender_id, blocked_user_id=callback_data.recipient_id))
 
     await callback.message.answer(text=answers.user_blocked)

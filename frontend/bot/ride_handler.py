@@ -95,8 +95,9 @@ async def process_start_period(message: Message, state: FSMContext):
 
 async def send_ride(message, ride, ride_response):
     ride_owner = stub.GetUser(api.GetUserRequest(user_id=ride.user_id))
-    start_time = ride.start_period
-    end_time = ride.end_period
+
+    start_time = datetime.fromtimestamp(ride.start_period + 18000).strftime("%d/%m/%Y %I:%M:%S")
+    end_time = datetime.fromtimestamp(ride.end_period + 18000).strftime("%d/%m/%Y %I:%M:%S")
 
     first_name = ride_owner.first_name
     last_name = ride_owner.last_name
@@ -107,18 +108,18 @@ async def send_ride(message, ride, ride_response):
 
     ride_together = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                                  recipient_id=ride.user_id, purpose="ride_together",
-                                 sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
+                                 sender_ride=ride.id, recipient_ride=ride_response.ride_id)
     decline = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                            recipient_id=ride.user_id, purpose="decline_ride",
-                           sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
+                           sender_ride=ride.id, recipient_ride=ride_response.ride_id)
     block_user = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                               recipient_id=ride.user_id, purpose="block_user",
-                              sender_ride=ride.id, recipient_ride=ride_response.ride_id).pack()
+                              sender_ride=ride.id, recipient_ride=ride_response.ride_id)
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together),
-         InlineKeyboardButton(text="Отклонить", callback_data=decline),
-         InlineKeyboardButton(text="Заблокировать", callback_data=block_user)]
+        [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together.pack()),
+         InlineKeyboardButton(text="Отклонить", callback_data=decline.pack()),
+         InlineKeyboardButton(text="Заблокировать", callback_data=block_user.pack())]
     ])
 
     if hasattr(ride_owner, "avatar"):
