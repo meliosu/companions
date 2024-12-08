@@ -96,15 +96,18 @@ async def process_start_period(message: Message, state: FSMContext):
 async def send_ride(message, ride, ride_response):
     ride_owner = stub.GetUser(api.GetUserRequest(user_id=ride.user_id))
 
-    start_time = datetime.fromtimestamp(ride.start_period + 18000).strftime("%d/%m/%Y %I:%M:%S")
-    end_time = datetime.fromtimestamp(ride.end_period + 18000).strftime("%d/%m/%Y %I:%M:%S")
+    print("LOOOOOK")
+    print(ride.start_period)
+
+    start_time = datetime.fromtimestamp(ride.start_period.seconds + 18000).strftime("%d/%m/%Y %I:%M:%S")
+    end_time = datetime.fromtimestamp(ride.end_period.seconds + 18000).strftime("%d/%m/%Y %I:%M:%S")
 
     first_name = ride_owner.first_name
     last_name = ride_owner.last_name
     age = ride_owner.age
     abouts = ride_owner.about
 
-    about = f"Начало поездки: {start_time}\nКонец поездки: {end_time}\n\nАнкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
+    about = f"Начало поездки: {start_time} \nКонец поездки: {end_time} \n\nАнкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
 
     ride_together = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                                  recipient_id=ride.user_id, purpose="ride_together",
@@ -184,3 +187,67 @@ async def process_user_block(callback: CallbackQuery, data: RideCallback):
     stub.BlockUser(api.BlockUserRequest(blocking_user_id=data.sender_id, blocked_user_id=data.recipient_id))
 
     await callback.message.delete()
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "ride_together"))
+async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
+    sender = stub.GetUser(api.GetUserRequest(user_id=callback_data.sender_id))
+
+    first_name = sender.first_name
+    last_name = sender.last_name
+    age = sender.age
+    abouts = sender.about
+
+    about = f"Анкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
+
+    chat = callback.message.chat
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Согласиться", callback_data=RideCallback(sender_id=callback_data.recipient_id,
+                                                                             sender_username=chat.username,
+                                                                             recipient_id=callback_data.sender_id,
+                                                                             purpose="ride_together_back",
+                                                                             sender_ride=callback_data.recipient_ride,
+                                                                             recipient_ride=0).pack()),
+         InlineKeyboardButton(text="Отклонить", callback_data=RideCallback(sender_id=callback_data.recipient_id,
+                                                                           sender_username=chat.username,
+                                                                           recipient_id=callback_data.sender_id,
+                                                                           purpose="decline_ride_back",
+                                                                           sender_ride=callback_data.recipient_ride,
+                                                                           recipient_ride=0).pack()),
+         InlineKeyboardButton(text="Заблокировать", callback_data=RideCallback(sender_id=callback_data.recipient_id,
+                                                                               sender_username=chat.username,
+                                                                               recipient_id=callback_data.sender_id,
+                                                                               purpose="block_user_back",
+                                                                               sender_ride=callback_data.recipient_ride,
+                                                                               recipient_ride=0).pack())]
+    ])
+
+    if hasattr(sender, "avatar"):
+        await callback.message.bot.send_photo(chat_id=callback_data.recipient_id, photo=sender.avatar, caption=answers.ride_offer + about,
+                             reply_markup=markup)
+    else:
+        await callback.message.bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "ride_together_back"))
+async def send_ride_offer_back(callback: CallbackQuery, callback_data: RideCallback):
+    beginning = "Поздравляем, Вы нашли попутчика в поездку!\n\nНапишите @"
+    end = " , чтобы договориться о дальнейших деталях."
+
+    await callback.message.answer(text=beginning + callback_data.sender_username + end)
+    await callback.message.bot.send_message(chat_id=callback_data.recipient_id, text=beginning + callback.message.chat.username + end)
+
+    stub.DeleteRide(api.DeleteRideRequest(ride_id=callback_data.sender_ride))
+    stub.DeleteRide(api.DeleteRideRequest(ride_id=callback_data.recipient_ride))
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "decline_ride_back"))
+async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCallback):
+    await callback.message.bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_declined)
+
+
+@router.callback_query(RideCallback.filter(F.purpose == "block_user_back"))
+async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCallback):
+    stub.BlockUser(api.BlockUserRequest(blocking_user_id=callback_data.sender_id, blocked_user_id=callback_data.recipient_id))
+
+    await callback.message.answer(text=answers.user_blocked)
