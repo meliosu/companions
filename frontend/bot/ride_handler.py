@@ -251,3 +251,30 @@ async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCal
     stub.BlockUser(api.BlockUserRequest(blocking_user_id=callback_data.sender_id, blocked_user_id=callback_data.recipient_id))
 
     await callback.message.answer(text=answers.user_blocked)
+
+
+@router.message(CommandStart())
+async def start_cmd(message: Message):
+    """Handle /start command"""
+    await message.answer(
+        text=answers.hello_message,
+        reply_markup=keyboards.init_markup
+    )
+
+@router.message(Command("help"))
+async def help_cmd(message: Message):
+    """Handle /help command"""
+    await message.answer(
+        text=answers.about,
+        reply_markup=keyboards.init_markup
+    )
+
+@router.message(F.text == "⚙️ Настройки")
+async def settings(message: Message):
+    """Handle settings menu"""
+    settings_markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Изменить анкету", callback_data="edit_profile")],
+        [InlineKeyboardButton(text="🔔 Уведомления", callback_data="notifications")],
+        [InlineKeyboardButton(text="❌ Удалить аккаунт", callback_data="delete_account")]
+    ])
+    await message.answer("⚙️ Настройки:", reply_markup=settings_markup)
