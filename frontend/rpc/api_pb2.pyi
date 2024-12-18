@@ -1,5 +1,6 @@
 from google.protobuf import empty_pb2 as _empty_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -34,10 +35,12 @@ class DeleteUserRequest(_message.Message):
     def __init__(self, user_id: _Optional[int] = ...) -> None: ...
 
 class UpdateUserRequest(_message.Message):
-    __slots__ = ("user",)
+    __slots__ = ("user", "mask")
     USER_FIELD_NUMBER: _ClassVar[int]
+    MASK_FIELD_NUMBER: _ClassVar[int]
     user: User
-    def __init__(self, user: _Optional[_Union[User, _Mapping]] = ...) -> None: ...
+    mask: _field_mask_pb2.FieldMask
+    def __init__(self, user: _Optional[_Union[User, _Mapping]] = ..., mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...
 
 class BlockUserRequest(_message.Message):
     __slots__ = ("blocking_user_id", "blocked_user_id")
@@ -72,10 +75,12 @@ class DeleteRideRequest(_message.Message):
     def __init__(self, ride_id: _Optional[int] = ...) -> None: ...
 
 class UpdateRideRequest(_message.Message):
-    __slots__ = ("ride",)
+    __slots__ = ("ride", "mask")
     RIDE_FIELD_NUMBER: _ClassVar[int]
+    MASK_FIELD_NUMBER: _ClassVar[int]
     ride: Ride
-    def __init__(self, ride: _Optional[_Union[Ride, _Mapping]] = ...) -> None: ...
+    mask: _field_mask_pb2.FieldMask
+    def __init__(self, ride: _Optional[_Union[Ride, _Mapping]] = ..., mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...
 
 class GetSimilarRidesRequest(_message.Message):
     __slots__ = ("ride", "start_radius", "end_radius")

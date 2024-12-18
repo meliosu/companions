@@ -84,6 +84,10 @@ async def process_start_period(message: Message, state: FSMContext):
     try:
         res = message.text.split(":")
         date = datetime.now().replace(hour=int(res[0]), minute=int(res[1]), second=0, microsecond=0)
+        date_now = datetime.now()
+        
+        
+
         setattr(rides_in_process[message.chat.id], "start_period", date)
     except ValueError:
         await message.answer(text=answers.bad_time)
@@ -96,11 +100,10 @@ async def process_start_period(message: Message, state: FSMContext):
 async def send_ride(message, ride, ride_response):
     ride_owner = stub.GetUser(api.GetUserRequest(user_id=ride.user_id))
 
-    print("LOOOOOK")
     print(ride.start_period)
 
-    start_time = datetime.fromtimestamp(ride.start_period.seconds + 18000).strftime("%d/%m/%Y %I:%M:%S")
-    end_time = datetime.fromtimestamp(ride.end_period.seconds + 18000).strftime("%d/%m/%Y %I:%M:%S")
+    start_time = datetime.fromtimestamp(ride.start_period.seconds).strftime("%d/%m %I:%M:%S")
+    end_time = datetime.fromtimestamp(ride.end_period.seconds).strftime("%d/%m %I:%M:%S")
 
     first_name = ride_owner.first_name
     last_name = ride_owner.last_name
@@ -120,9 +123,9 @@ async def send_ride(message, ride, ride_response):
                               sender_ride=ride.id, recipient_ride=ride_response.ride_id)
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together.pack()),
-         InlineKeyboardButton(text="Отклонить", callback_data=decline.pack()),
-         InlineKeyboardButton(text="Заблокировать", callback_data=block_user.pack())]
+        [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together.pack())],
+         [InlineKeyboardButton(text="Отклонить", callback_data=decline.pack())],
+         [InlineKeyboardButton(text="Заблокировать", callback_data=block_user.pack())]
     ])
 
     if hasattr(ride_owner, "avatar"):
@@ -138,6 +141,12 @@ async def process_end_period(message: Message, state: FSMContext):
     try:
         res = message.text.split(":")
         date = datetime.now().replace(hour=int(res[0]), minute=int(res[1]), second=0, microsecond=0)
+        date_now = datetime.now()
+
+        if date_now > date:
+            await message.answer(text="Это время уже прошло. Пожалуйста, введите время корректно.")
+            return
+
         setattr(rides_in_process[key], "end_period", date)
     except ValueError:
         await message.answer(text=answers.bad_time)

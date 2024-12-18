@@ -2,21 +2,20 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 
 
 init_markup = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text="ℹ️ О боте"),
+    [KeyboardButton(text="О боте"),
      KeyboardButton(text="👤 Регистрация")],
-    [KeyboardButton(text="🚗 Найти поездку")]
+    [KeyboardButton(text="Уже есть аккаунт")]
 ], resize_keyboard=True)
 
 default_markup = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text="🚗 Создать поездку"),
-     KeyboardButton(text="🔍 Найти поездку")],
-    [KeyboardButton(text="👤 Моя анкета"),
-     KeyboardButton(text="⚙️ Настройки")]
-], resize_keyboard=True)
+    [KeyboardButton(text="Моя анкета"),
+     KeyboardButton(text="Создать заявку")],
+    [KeyboardButton(text="Редактировать анкету")],
+    [KeyboardButton(text="О боте")]], resize_keyboard=True)
 
 gender = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text="👨 Мужчина"),
-     KeyboardButton(text="👩 Женщина")]
+    [KeyboardButton(text="Мужчина"),
+     KeyboardButton(text="Женщина")]
 ], resize_keyboard=True)
 
 no_similar_ride = InlineKeyboardMarkup(inline_keyboard=[
