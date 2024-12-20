@@ -1,5 +1,6 @@
-import json
-from datetime import datetime, timezone
+import re
+import sys
+from datetime import datetime, timedelta
 
 from aiogram import F
 from aiogram.filters.callback_data import CallbackData
@@ -57,7 +58,8 @@ async def process_start_point(message: Message, state: FSMContext):
         await message.answer(text=answers.no_location_provided)
         return
 
-    location = api.Location(latitude=message.location.latitude, longitude=message.location.longitude)
+    location = api.Location(
+        latitude=message.location.latitude, longitude=message.location.longitude)
     rides_in_process[message.chat.id].start_point.CopyFrom(location)
 
     await state.set_state(Ride.end_point)
@@ -65,14 +67,15 @@ async def process_start_point(message: Message, state: FSMContext):
 
 
 @router.message(Ride.end_point)
-async def process_start_point(message: Message, state: FSMContext):
+async def process_end_point(message: Message, state: FSMContext):
     # TODO: Implement point search by text
 
     if not message.location:
         await message.answer(text=answers.no_location_provided)
         return
 
-    location = api.Location(latitude=message.location.latitude, longitude=message.location.longitude)
+    location = api.Location(
+        latitude=message.location.latitude, longitude=message.location.longitude)
     rides_in_process[message.chat.id].end_point.CopyFrom(location)
 
     await state.set_state(Ride.start_period)
@@ -81,12 +84,18 @@ async def process_start_point(message: Message, state: FSMContext):
 
 @router.message(Ride.start_period)
 async def process_start_period(message: Message, state: FSMContext):
+    match = re.search(
+        "^([0-9]|1[0-9]|2[0-3])(?::| )([0-5][0-9])$", message.text)
     try:
-        res = message.text.split(":")
-        date = datetime.now().replace(hour=int(res[0]), minute=int(res[1]), second=0, microsecond=0)
-        date_now = datetime.now()
-        
-        
+        if not match:
+            message.answer("Вы некорректно ввели время.")
+            return
+
+        hour = match.group(1)
+        minutes = match.group(2)
+
+        date = datetime.now().replace(
+            hour=int(hour), minute=int(minutes), second=0, microsecond=0)
 
         setattr(rides_in_process[message.chat.id], "start_period", date)
     except ValueError:
@@ -102,15 +111,18 @@ async def send_ride(message, ride, ride_response):
 
     print(ride.start_period)
 
-    start_time = datetime.fromtimestamp(ride.start_period.seconds).strftime("%d/%m %I:%M:%S")
-    end_time = datetime.fromtimestamp(ride.end_period.seconds).strftime("%d/%m %I:%M:%S")
+    start_time = datetime.fromtimestamp(
+        ride.start_period.seconds).strftime("%d/%m %I:%M:%S")
+    end_time = datetime.fromtimestamp(
+        ride.end_period.seconds).strftime("%d/%m %I:%M:%S")
 
     first_name = ride_owner.first_name
     last_name = ride_owner.last_name
     age = ride_owner.age
     abouts = ride_owner.about
 
-    about = f"Начало поездки: {start_time} \nКонец поездки: {end_time} \n\nАнкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
+    about = f"Начало поездки: {start_time} \nКонец поездки: {end_time} \n\nАнкета:{
+        first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
 
     ride_together = RideCallback(sender_id=message.chat.id, sender_username=message.chat.username,
                                  recipient_id=ride.user_id, purpose="ride_together",
@@ -123,12 +135,14 @@ async def send_ride(message, ride, ride_response):
                               sender_ride=ride.id, recipient_ride=ride_response.ride_id)
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Поехать вместе", callback_data=ride_together.pack())],
-         [InlineKeyboardButton(text="Отклонить", callback_data=decline.pack())],
-         [InlineKeyboardButton(text="Заблокировать", callback_data=block_user.pack())]
+        [InlineKeyboardButton(text="Поехать вместе",
+                              callback_data=ride_together.pack())],
+        [InlineKeyboardButton(text="Отклонить", callback_data=decline.pack())],
+        [InlineKeyboardButton(text="Заблокировать",
+                              callback_data=block_user.pack())]
     ])
 
-    if hasattr(ride_owner, "avatar"):
+    if hasattr(ride_owner, "avatar") and not ride_owner.avatar == "":
         await message.answer_photo(caption=about, photo=ride_owner.avatar, reply_markup=markup)
     else:
         await message.answer(text=about, reply_markup=keyboards.ride_markup)
@@ -137,11 +151,24 @@ async def send_ride(message, ride, ride_response):
 @router.message(Ride.end_period)
 async def process_end_period(message: Message, state: FSMContext):
     key = message.chat.id
+    match = re.search(
+        "^([0-9]|1[0-9]|2[0-3])(?::| )([0-5][0-9])$", message.text)
 
     try:
-        res = message.text.split(":")
-        date = datetime.now().replace(hour=int(res[0]), minute=int(res[1]), second=0, microsecond=0)
-        date_now = datetime.now()
+        if not match:
+            message.answer("Вы некорректно ввели время.")
+            return
+
+        hour = match.group(1)
+        minutes = match.group(2)
+
+        print(hour, minutes, file=sys.stderr)
+
+        date = datetime.now().replace(
+            hour=int(hour), minute=int(minutes), second=0, microsecond=0)
+        date_now = datetime.now() + timedelta(hours=7)
+
+        print(date, date_now, file=sys.stderr)
 
         if date_now > date:
             await message.answer(text="Это время уже прошло. Пожалуйста, введите время корректно.")
@@ -152,7 +179,8 @@ async def process_end_period(message: Message, state: FSMContext):
         await message.answer(text=answers.bad_time)
         return
 
-    ride_response: api.CreateRideResponse = stub.CreateRide(api.CreateRideRequest(ride=rides_in_process[key]))
+    ride_response: api.CreateRideResponse = stub.CreateRide(
+        api.CreateRideRequest(ride=rides_in_process[key]))
     setattr(rides_in_process[message.chat.id], "id", ride_response.ride_id)
 
     await state.clear()
@@ -161,7 +189,7 @@ async def process_end_period(message: Message, state: FSMContext):
     similar_rides = stub.GetSimilarRides(api.GetSimilarRidesRequest(ride=rides_in_process[key],
                                                                     start_radius=200, end_radius=200))
 
-    rides_in_process.pop(key)
+    # rides_in_process.pop(key)
 
     if not similar_rides.rides:
         await message.answer(text=answers.no_similar_rides_found, reply_markup=keyboards.no_similar_ride)
@@ -169,18 +197,21 @@ async def process_end_period(message: Message, state: FSMContext):
 
     for ride in similar_rides.rides:
         await send_ride(message, ride, ride_response)
+        rides_in_process.pop(key)
 
     await message.answer(text=answers.all_rides_listed)
 
 
 @router.callback_query(F.data == "wait_for_companion")
 async def process_wait_for_companion(callback: CallbackQuery):
+    rides_in_process.pop(callback.message.chat.id)
     await callback.message.answer(text=answers.wait_for_companion)
 
 
 @router.callback_query(F.data == "delete_ride")
 async def process_ride_deletion(callback: CallbackQuery):
-    stub.DeleteRide(api.DeleteRideRequest(ride_id=rides_in_process[callback.message.chat.id].id))
+    stub.DeleteRide(api.DeleteRideRequest(
+        ride_id=rides_in_process[callback.message.chat.id].id))
     rides_in_process.pop(callback.message.chat.id)
 
     await callback.message.answer(text=answers.ride_deleted_after_no_similar)
@@ -193,7 +224,8 @@ async def process_ride_decline(callback: CallbackQuery):
 
 @router.callback_query(RideCallback.filter(F.purpose == "block_user"))
 async def process_user_block(callback: CallbackQuery, data: RideCallback):
-    stub.BlockUser(api.BlockUserRequest(blocking_user_id=data.sender_id, blocked_user_id=data.recipient_id))
+    stub.BlockUser(api.BlockUserRequest(
+        blocking_user_id=data.sender_id, blocked_user_id=data.recipient_id))
 
     await callback.message.delete()
 
@@ -207,7 +239,8 @@ async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
     age = sender.age
     abouts = sender.about
 
-    about = f"Анкета:{first_name} {last_name}\nВозраст: {age}\nО Себе: {abouts}"
+    about = f"Анкета:{first_name} {
+        last_name}\nВозраст: {age}\nО Себе: {abouts}"
 
     chat = callback.message.chat
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -216,14 +249,14 @@ async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
                                                                              recipient_id=callback_data.sender_id,
                                                                              purpose="ride_together_back",
                                                                              sender_ride=callback_data.recipient_ride,
-                                                                             recipient_ride=0).pack()),
-         InlineKeyboardButton(text="Отклонить", callback_data=RideCallback(sender_id=callback_data.recipient_id,
+                                                                             recipient_ride=0).pack())],
+        [InlineKeyboardButton(text="Отклонить", callback_data=RideCallback(sender_id=callback_data.recipient_id,
                                                                            sender_username=chat.username,
                                                                            recipient_id=callback_data.sender_id,
                                                                            purpose="decline_ride_back",
                                                                            sender_ride=callback_data.recipient_ride,
-                                                                           recipient_ride=0).pack()),
-         InlineKeyboardButton(text="Заблокировать", callback_data=RideCallback(sender_id=callback_data.recipient_id,
+                                                                           recipient_ride=0).pack())],
+        [InlineKeyboardButton(text="Заблокировать", callback_data=RideCallback(sender_id=callback_data.recipient_id,
                                                                                sender_username=chat.username,
                                                                                recipient_id=callback_data.sender_id,
                                                                                purpose="block_user_back",
@@ -231,9 +264,9 @@ async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
                                                                                recipient_ride=0).pack())]
     ])
 
-    if hasattr(sender, "avatar"):
+    if hasattr(sender, "avatar") and not sender.avatar == "":
         await callback.message.bot.send_photo(chat_id=callback_data.recipient_id, photo=sender.avatar, caption=answers.ride_offer + about,
-                             reply_markup=markup)
+                                              reply_markup=markup)
     else:
         await callback.message.bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
 
@@ -247,7 +280,8 @@ async def send_ride_offer_back(callback: CallbackQuery, callback_data: RideCallb
     await callback.message.bot.send_message(chat_id=callback_data.recipient_id, text=beginning + callback.message.chat.username + end)
 
     stub.DeleteRide(api.DeleteRideRequest(ride_id=callback_data.sender_ride))
-    stub.DeleteRide(api.DeleteRideRequest(ride_id=callback_data.recipient_ride))
+    stub.DeleteRide(api.DeleteRideRequest(
+        ride_id=callback_data.recipient_ride))
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "decline_ride_back"))
@@ -257,7 +291,8 @@ async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCal
 
 @router.callback_query(RideCallback.filter(F.purpose == "block_user_back"))
 async def send_ride_decline_back(callback: CallbackQuery, callback_data: RideCallback):
-    stub.BlockUser(api.BlockUserRequest(blocking_user_id=callback_data.sender_id, blocked_user_id=callback_data.recipient_id))
+    stub.BlockUser(api.BlockUserRequest(
+        blocking_user_id=callback_data.sender_id, blocked_user_id=callback_data.recipient_id))
 
     await callback.message.answer(text=answers.user_blocked)
 
@@ -270,6 +305,7 @@ async def start_cmd(message: Message):
         reply_markup=keyboards.init_markup
     )
 
+
 @router.message(Command("help"))
 async def help_cmd(message: Message):
     """Handle /help command"""
@@ -278,12 +314,22 @@ async def help_cmd(message: Message):
         reply_markup=keyboards.init_markup
     )
 
+
 @router.message(F.text == "⚙️ Настройки")
 async def settings(message: Message):
     """Handle settings menu"""
     settings_markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Изменить анкету", callback_data="edit_profile")],
-        [InlineKeyboardButton(text="🔔 Уведомления", callback_data="notifications")],
-        [InlineKeyboardButton(text="❌ Удалить аккаунт", callback_data="delete_account")]
+        [InlineKeyboardButton(text="📝 Изменить анкету",
+                              callback_data="edit_profile")],
+        [InlineKeyboardButton(text="🔔 Уведомления",
+                              callback_data="notifications")],
+        [InlineKeyboardButton(text="❌ Удалить аккаунт",
+                              callback_data="delete_account")]
     ])
     await message.answer("⚙️ Настройки:", reply_markup=settings_markup)
+
+
+@router.message(CommandStart())
+@router.message()
+async def command_start(message: Message):
+    await message.answer(text=answers.hello_message, reply_markup=keyboards.init_markup)

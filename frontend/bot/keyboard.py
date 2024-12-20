@@ -19,13 +19,15 @@ gender = ReplyKeyboardMarkup(keyboard=[
 ], resize_keyboard=True)
 
 no_similar_ride = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="⏳ Дождаться попутчика", callback_data="wait_for_companion")],
-    [InlineKeyboardButton(text="❌ Удалить заявку", callback_data="delete_ride")]
+    [InlineKeyboardButton(text="⏳ Дождаться попутчика",
+                          callback_data="wait_for_companion")],
+    [InlineKeyboardButton(text="❌ Удалить заявку",
+                          callback_data="delete_ride")]
 ])
 
 ride_markup = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="✅ Поехать вместе", callback_data="share_ride")],
-    [InlineKeyboardButton(text="⛔️ Отклонить", callback_data="decline_ride"),
-     InlineKeyboardButton(text="🚫 Заблокировать", callback_data="block_user")]
+    [InlineKeyboardButton(text="✅ Поехать вместе",
+                          callback_data="share_ride")],
+    [InlineKeyboardButton(text="⛔️ Отклонить", callback_data="decline_ride")],
+    [InlineKeyboardButton(text="🚫 Заблокировать", callback_data="block_user")]
 ])
-

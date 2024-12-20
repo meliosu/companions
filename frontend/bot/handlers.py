@@ -1,4 +1,6 @@
 import os
+import sys
+import re
 
 import grpc
 from aiogram.fsm.context import FSMContext
@@ -21,11 +23,6 @@ channel = grpc.insecure_channel(os.environ['COMPANIONS_BACKEND_ADDRESS'])
 stub = api_grpc.CompanionsStub(channel)
 
 
-@router.message(CommandStart())
-async def command_start(message: Message):
-    await message.answer(text=answers.hello_message, reply_markup=keyboards.init_markup)
-
-
 @router.message(F.text == "Моя анкета")
 @router.message(F.text == "Уже есть аккаунт")
 async def print_user_form(message: Message):
@@ -34,12 +31,14 @@ async def print_user_form(message: Message):
     except Exception as e:
         await message.answer(text="Кажется, в нашей базе нет Вашей анкеты. Пожалуйста, зарегистрируйтесь!")
         return
-    
 
     form = form_str(usr)
 
-    if hasattr(usr, "avatar"):
-        await message.reply_photo(photo=usr.avatar, caption=form, reply_markup=keyboards.default_markup);
+    print(usr, file=sys.stderr)
+
+    if hasattr(usr, "avatar") and not usr.avatar == "":
+        print(usr.avatar, file=sys.stderr)
+        await message.reply_photo(photo=usr.avatar, caption=form, reply_markup=keyboards.default_markup)
     else:
         await message.answer(text=form, reply_markup=keyboards.default_markup)
 
@@ -48,11 +47,10 @@ async def print_user_form(message: Message):
 async def change_form(message: Message, state: FSMContext):
     users_on_register[message.chat.id] = {}
     users_on_register[message.chat.id][0] = api.User(id=message.chat.id)
-    users_on_register[message.chat.id][1] = 1;
+    users_on_register[message.chat.id][1] = 1
 
     await state.set_state(Form.first_name)
     await message.answer(answers.register_1)
-
 
 
 @router.message(Command('help'))
@@ -72,24 +70,32 @@ class Form(StatesGroup):
 @router.message(Command('register'))
 @router.message(F.text == "👤 Регистрация")
 async def register(message: Message, state: FSMContext):
-    users_on_register[message.chat.id] = {}
-    users_on_register[message.chat.id][0] = api.User(id=message.chat.id)
-    users_on_register[message.chat.id][1] = 0;
+    try:
+        stub.GetUser(api.GetUserRequest(user_id=message.chat.id))
+    except Exception as e:
+        users_on_register[message.chat.id] = {}
+        users_on_register[message.chat.id][0] = api.User(id=message.chat.id)
+        users_on_register[message.chat.id][1] = 0
 
-    await state.set_state(Form.first_name)
-    await message.answer(answers.register_1)
+        await state.set_state(Form.first_name)
+        await message.answer(answers.register_1)
+        return
+
+    await message.answer(text="Вы уже заргистрированы", reply_markup=keyboards.default_markup)
 
 
 @router.message(Form.first_name)
 async def process_first_and_last_name(message: Message, state: FSMContext):
-    answer = message.text.split(" ")
-
-    if len(answer) != 2:
+    match = re.search("^(\p{L}+) +(\p{L}+)$", message.text)
+    if not match:
         await message.answer(text=answers.register_1_err)
         return
 
-    setattr(users_on_register[message.chat.id][0], "first_name", answer[0])
-    setattr(users_on_register[message.chat.id][0], "last_name", answer[1])
+    first_name = match.group(1)
+    last_name = match.group(2)
+
+    setattr(users_on_register[message.chat.id][0], "first_name", first_name)
+    setattr(users_on_register[message.chat.id][0], "last_name", last_name)
 
     await state.set_state(Form.age)
     await message.answer(text=answers.register_2)
@@ -178,6 +184,3 @@ async def process_avatar(message: Message, state: FSMContext):
     await state.clear()
     await message.answer_photo(caption=answers.register_success + form, photo=message.photo[-1].file_id,
                                reply_markup=keyboards.default_markup)
-
-
-
