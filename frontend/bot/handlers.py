@@ -86,7 +86,7 @@ async def register(message: Message, state: FSMContext):
 
 @router.message(Form.first_name)
 async def process_first_and_last_name(message: Message, state: FSMContext):
-    match = re.search("^(\p{L}+) +(\p{L}+)$", message.text)
+    match = re.search(r"^(\p{L}+) +(\p{L}+)$", message.text)
     if not match:
         await message.answer(text=answers.register_1_err)
         return

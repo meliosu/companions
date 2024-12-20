@@ -94,8 +94,16 @@ async def process_start_period(message: Message, state: FSMContext):
         hour = match.group(1)
         minutes = match.group(2)
 
-        date = datetime.now().replace(
-            hour=int(hour), minute=int(minutes), second=0, microsecond=0)
+        date = datetime.now() + timedelta(hours=7)
+        date = date.replace(hour=int(hour), minute=int(
+            minutes), second=0, microsecond=0)
+        date_now = datetime.now() + timedelta(hours=7)
+
+        print(date, date_now, file=sys.stderr)
+
+        if date_now > date:
+            await message.answer(text="Это время уже прошло. Пожалуйста, введите время корректно.")
+            return
 
         setattr(rides_in_process[message.chat.id], "start_period", date)
     except ValueError:
@@ -145,7 +153,7 @@ async def send_ride(message, ride, ride_response):
     if hasattr(ride_owner, "avatar") and not ride_owner.avatar == "":
         await message.answer_photo(caption=about, photo=ride_owner.avatar, reply_markup=markup)
     else:
-        await message.answer(text=about, reply_markup=keyboards.ride_markup)
+        await message.answer(text=about, reply_markup=markup)
 
 
 @router.message(Ride.end_period)
@@ -164,8 +172,9 @@ async def process_end_period(message: Message, state: FSMContext):
 
         print(hour, minutes, file=sys.stderr)
 
-        date = datetime.now().replace(
-            hour=int(hour), minute=int(minutes), second=0, microsecond=0)
+        date = datetime.now() + timedelta(hours=7)
+        date = date.replace(hour=int(hour), minute=int(
+            minutes), second=0, microsecond=0)
         date_now = datetime.now() + timedelta(hours=7)
 
         print(date, date_now, file=sys.stderr)
@@ -195,9 +204,10 @@ async def process_end_period(message: Message, state: FSMContext):
         await message.answer(text=answers.no_similar_rides_found, reply_markup=keyboards.no_similar_ride)
         return
 
+    rides_in_process.pop(key)
+
     for ride in similar_rides.rides:
         await send_ride(message, ride, ride_response)
-        rides_in_process.pop(key)
 
     await message.answer(text=answers.all_rides_listed)
 
@@ -231,7 +241,7 @@ async def process_user_block(callback: CallbackQuery, data: RideCallback):
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "ride_together"))
-async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
+async def send_ride_offer(query: CallbackQuery, callback_data: RideCallback):
     sender = stub.GetUser(api.GetUserRequest(user_id=callback_data.sender_id))
 
     first_name = sender.first_name
@@ -242,7 +252,7 @@ async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
     about = f"Анкета:{first_name} {
         last_name}\nВозраст: {age}\nО Себе: {abouts}"
 
-    chat = callback.message.chat
+    chat = query.message.chat
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Согласиться", callback_data=RideCallback(sender_id=callback_data.recipient_id,
                                                                              sender_username=chat.username,
@@ -265,10 +275,10 @@ async def send_ride_offer(callback: CallbackQuery, callback_data: RideCallback):
     ])
 
     if hasattr(sender, "avatar") and not sender.avatar == "":
-        await callback.message.bot.send_photo(chat_id=callback_data.recipient_id, photo=sender.avatar, caption=answers.ride_offer + about,
-                                              reply_markup=markup)
+        await query.message.bot.send_photo(chat_id=callback_data.recipient_id, photo=sender.avatar, caption=answers.ride_offer + about,
+                                           reply_markup=markup)
     else:
-        await callback.message.bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
+        await query.message.bot.send_message(chat_id=callback_data.recipient_id, text=answers.ride_offer + about, reply_markup=markup)
 
 
 @router.callback_query(RideCallback.filter(F.purpose == "ride_together_back"))
@@ -333,3 +343,8 @@ async def settings(message: Message):
 @router.message()
 async def command_start(message: Message):
     await message.answer(text=answers.hello_message, reply_markup=keyboards.init_markup)
+
+
+@router.callback_query()
+async def helpme(callback_query: CallbackQuery):
+    print(callback_query, file=sys.stderr)

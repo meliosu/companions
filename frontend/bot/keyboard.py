@@ -25,9 +25,9 @@ no_similar_ride = InlineKeyboardMarkup(inline_keyboard=[
                           callback_data="delete_ride")]
 ])
 
-ride_markup = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="✅ Поехать вместе",
-                          callback_data="share_ride")],
-    [InlineKeyboardButton(text="⛔️ Отклонить", callback_data="decline_ride")],
-    [InlineKeyboardButton(text="🚫 Заблокировать", callback_data="block_user")]
-])
+# ride_markup = InlineKeyboardMarkup(inline_keyboard=[
+#     [InlineKeyboardButton(text="✅ Поехать вместе",
+#                           callback_data="share_ride")],
+#     [InlineKeyboardButton(text="⛔️ Отклонить", callback_data="decline_ride")],
+#     [InlineKeyboardButton(text="🚫 Заблокировать", callback_data="block_user")]
+# ])
