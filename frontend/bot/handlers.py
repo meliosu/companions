@@ -1,6 +1,6 @@
 import os
 import sys
-import re
+import regex as re
 
 import grpc
 from aiogram.fsm.context import FSMContext
@@ -33,8 +33,6 @@ async def print_user_form(message: Message):
         return
 
     form = form_str(usr)
-
-    print(usr, file=sys.stderr)
 
     if hasattr(usr, "avatar") and not usr.avatar == "":
         print(usr.avatar, file=sys.stderr)
