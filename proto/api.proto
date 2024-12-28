@@ -1,3 +1,205 @@
 syntax = "proto3";
 
 package api;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+
+service Companions {
+    // Get User by Telegram ID
+    rpc GetUser(GetUserRequest) returns (User);
+
+    // Create new User with the specified info and Telegram ID
+    rpc CreateUser(CreateUserRequest) returns (google.protobuf.Empty);
+
+    // Delete User with the specified Telegram ID
+    rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+
+    // Update existing User
+    // Request must contain `user_id` and fields that need to be updated 
+    // Other fields should not be set
+    rpc UpdateUser(UpdateUserRequest) returns (google.protobuf.Empty);
+
+    // Notify the system that User with id `blocking_user_id`
+    // wants to block user with id `blocked_user_id`
+    // Both IDs are the same as Telegram IDs but they both must
+    // be registered by the system previously (by CreateUser method)
+    // Both users will not be able to see each other's Rides, 
+    // i. e. GetSimilarRides will skip Rides that have conflicting users
+    rpc BlockUser(BlockUserRequest) returns (google.protobuf.Empty);
+
+    // Get Ride by Ride ID
+    rpc GetRide(GetRideRequest) returns (Ride);
+
+    // Create new Ride (insert it into the System)
+    // Request should not include Ride ID, it set internally
+    // and returned in CreateRideResponse
+    rpc CreateRide(CreateRideRequest) returns (CreateRideResponse);
+
+    // Delete Ride with the specified ID
+    rpc DeleteRide(DeleteRideRequest) returns (google.protobuf.Empty);
+
+    // Update existing Ride
+    // Request must contain `ride_id`, and fields that need to be updated
+    // Other fields should not be set
+    rpc UpdateRide(UpdateRideRequest) returns (google.protobuf.Empty);
+
+    // Get Rides similar to `ride` in GetSimilarRidesRequest
+    // The deadlines of `ride` in request and matched ride are guaranteed to intersect
+    // The distance from `start_point` of `ride` in request and `start_point`
+    // in each matched Ride will be less than `start_radius`
+    // The same is for `end_point`
+    // Returns empty list if there are no Rides that match the criteria
+    rpc GetSimilarRides(GetSimilarRidesRequest) returns (Rides);
+
+    // Get all Rides associated with the User (by Telegram ID)
+    // Returns empty list if user has no outstanding Rides
+    rpc GetUserRides(GetUserRidesRequest) returns (Rides);
+}
+
+message GetUserRequest {
+    // User ID. Same as Telegram ID
+    sint64 user_id = 1;
+}
+
+message CreateUserRequest {
+    // New User
+    User user = 1;
+}
+
+message DeleteUserRequest {
+    // User ID. Same as Telegram ID
+    sint64 user_id = 1;
+}
+
+message UpdateUserRequest {
+    // Updated User
+    // Only `id` is required. Other fields are optional
+    // Only fields that are present in `mask` are updated
+    // Other fields will remain the same
+    User user = 1;
+
+    // List (mask) of updated fields
+    google.protobuf.FieldMask mask = 2;
+}
+
+message BlockUserRequest {
+    // User ID of the User that initiated the blocking 
+    sint64 blocking_user_id = 1;
+
+    // User ID of the User that has been blocked
+    sint64 blocked_user_id = 2;
+}
+
+message GetRideRequest {
+    // System-internal Ride ID
+    sint64 ride_id = 1;
+}
+
+message CreateRideRequest {
+    // New Ride
+    // `id` field will be assigned by the system automatically and is ignored
+    Ride ride = 1;
+}
+
+message CreateRideResponse {
+    // System-internal Ride ID of newly created Ride
+    sint64 ride_id = 1;
+}
+
+message DeleteRideRequest {
+    // System-internal Ride ID
+    sint64 ride_id = 1;
+}
+
+message UpdateRideRequest {
+    // Updated Ride
+    // Only `id` is required. Other fields are optional
+    // Only fields that are present in `mask` are updated
+    // Other fields will remain the same
+    Ride ride = 1;
+
+    // List (mask) of updated fields
+    google.protobuf.FieldMask mask = 2;
+}
+
+message GetSimilarRidesRequest {
+    // Ride that we are searching similar ones for
+    Ride ride = 1;
+
+    // Maximum allowed distance in meters from the start_point of `ride`
+    // to the start_point of matched Ride
+    uint32 start_radius = 2;
+
+    // Maximum allowed distance in meters from the end_point of `ride`
+    // to the end_point of matched Ride
+    uint32 end_radius = 3;
+}
+
+message GetUserRidesRequest {
+    // User ID. Same as Telegram ID
+    sint64 user_id = 1;
+}
+
+message Rides {
+    // List of matched Rides
+    // Empty if no matching Rides are found
+    repeated Ride rides = 1;
+}
+
+message Ride {
+    // System-internal ID of the Ride
+    // Optional when used inside CreateRideRequest or GetSimilarRidesRequest
+    // Required otherwise
+    sint64 id = 1;
+
+    // ID of the user that created this Ride
+    // Same as Telegram ID
+    sint64 user_id = 2;
+
+    // Starting point of the Ride
+    Location start_point = 3;
+
+    // End point of the Ride
+    Location end_point = 4;
+
+    // Earlist time when User wants to take this Ride
+    google.protobuf.Timestamp start_period = 5;
+
+    // Latest time when User wants to take this Ride
+    google.protobuf.Timestamp end_period = 6;
+}
+
+message User {
+    // User ID. Same as the Telegram ID
+    sint64 id = 1;
+
+    // First Name
+    string first_name = 2;
+
+    // Last Name
+    string last_name = 3;
+
+    // Age
+    uint32 age = 4;
+
+    // Gender. Male or Female
+    Gender gender = 5;
+
+    // Optional. User provided short description of themselves
+    optional string about = 6;
+
+    // Optional. Contains Telegram File ID (Not URL!) of User provided avatar
+    optional string avatar = 7;
+}
+
+message Location {
+    double latitude = 1;
+    double longitude = 2;
+}
+
+enum Gender {
+    MALE = 0;
+    FEMALE = 1;
+}

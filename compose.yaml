@@ -1,0 +1,35 @@
+services:
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: ./Dockerfile
+    environment:
+      - COMPANIONS_BACKEND_ADDRESS=backend:7333
+      - COMPANIONS_TG_TOKEN=${COMPANIONS_TG_TOKEN}
+    networks:
+      - net0
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    environment:
+      - COMPANIONS_LISTEN_PORT=7333
+      - RUST_LOG=info # TODO: make this customisable ant not global
+    volumes:
+      - db-data:/app/db
+    networks:
+      - net0
+
+networks:
+  net0:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.72.0.0/16
+          ip_range: 172.72.0.0/24
+
+volumes:
+  db-data:

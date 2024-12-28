@@ -1,0 +1,17 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.93"
+env_logger = "0.11.5"
+log = "0.4.22"
+prost = "0.13.3"
+prost-types = "0.13.3"
+sqlx = { git = "https://github.com/launchbadge/sqlx", features = ["sqlite-unbundled", "runtime-tokio"] }
+tokio = { version = "1.41.1", features = ["full"] }
+tonic = "0.12.3"
+
+[build-dependencies]
+tonic-build = "0.12.3"
